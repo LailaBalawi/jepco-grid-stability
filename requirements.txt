@@ -1,0 +1,8 @@
+Django==4.2.16
+djangorestframework==3.14.0
+django-filter==23.5
+psycopg2-binary==2.9.10
+python-decouple==3.8
+anthropic==0.45.0
+pandas==2.2.0
+numpy==1.26.0

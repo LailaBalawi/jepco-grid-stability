@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - JEPCO Grid Stability{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-speedometer2"></i> Grid Stability Dashboard</h1>
+            <p class="text-muted">Real-time grid monitoring and risk assessment</p>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-exclamation-triangle-fill"></i> High Risk</h5>
+                    <h2 class="card-text">{{ high_risk_count }}</h2>
+                    <small>Transformers (Risk ≥ 0.7)</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-lightning-fill"></i> Forecasts</h5>
+                    <h2 class="card-text">{{ total_forecasts }}</h2>
+                    <small>Active predictions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-file-earmark-text"></i> Plans</h5>
+                    <h2 class="card-text">{{ total_plans }}</h2>
+                    <small>Mitigation plans</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-clipboard-check"></i> Work Orders</h5>
+                    <h2 class="card-text">{{ total_workorders }}</h2>
+                    <small>Field operations</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- High Risk Transformers -->
+    {% if high_risk_assessments %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5><i class="bi bi-exclamation-triangle-fill"></i> High Risk Transformers - Action Required</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Transformer</th>
+                                    <th>Location</th>
+                                    <th>Peak Load %</th>
+                                    <th>Risk Score</th>
+                                    <th>Peak Time</th>
+                                    <th>Primary Reason</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assessment in high_risk_assessments %}
+                                <tr class="table-danger">
+                                    <td><strong>{{ assessment.transformer.name }}</strong></td>
+                                    <td>{{ assessment.transformer.feeder.name }} / {{ assessment.transformer.feeder.substation.name }}</td>
+                                    <td><span class="badge bg-danger">{{ assessment.overload_pct }}%</span></td>
+                                    <td><span class="badge bg-dark">{{ assessment.risk_score }}</span></td>
+                                    <td>{{ assessment.forecast.peak_time|date:"M d, H:i" }}</td>
+                                    <td>{{ assessment.reasons_json.primary|truncatewords:8 }}</td>
+                                    <td>
+                                        {% if assessment.mitigation_plans.count > 0 %}
+                                            <span class="badge bg-success">{{ assessment.mitigation_plans.count }} Plan(s)</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">No Plans</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- System Status -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-bar-chart-fill"></i> Risk Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-circle-fill text-success"></i> Low Risk (< 0.3)</span>
+                            <span class="badge bg-success rounded-pill">{{ low_risk_count }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-circle-fill text-warning"></i> Medium Risk (0.3-0.7)</span>
+                            <span class="badge bg-warning rounded-pill">{{ medium_risk_count }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-circle-fill text-danger"></i> High Risk (≥ 0.7)</span>
+                            <span class="badge bg-danger rounded-pill">{{ high_risk_count }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-clipboard-data"></i> Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for log in recent_logs %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>
+                                    <i class="bi bi-clock"></i>
+                                    {% if log.user %}{{ log.user.username }}{% else %}System{% endif %}
+                                    - {{ log.action_type }}
+                                </span>
+                                <small class="text-muted">{{ log.timestamp|timesince }} ago</small>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted">No recent activity</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-info-circle"></i> System Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>Grid Assets</h6>
+                            <ul>
+                                <li>Substations: {{ total_substations }}</li>
+                                <li>Feeders: {{ total_feeders }}</li>
+                                <li>Transformers: {{ total_transformers }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Intelligence</h6>
+                            <ul>
+                                <li>Load Forecasts: {{ total_forecasts }}</li>
+                                <li>Risk Assessments: {{ total_assessments }}</li>
+                                <li>Mitigation Plans: {{ total_plans }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Operations</h6>
+                            <ul>
+                                <li>Work Orders: {{ total_workorders }}</li>
+                                <li>Completed: {{ completed_workorders }}</li>
+                                <li>Audit Logs: {{ total_logs }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
